@@ -21,12 +21,12 @@ Before getting started, ensure you have the following installed on your machine:
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/your-repo.git
+   git clone https://github.com/azrimangsor/upwork_pp_assignment.git
    ```
 
 2. Navigate to the project directory:
    ```bash
-   cd your-repo
+   cd upwork_pp_assignment
    ```
 
 3. Install the required dependencies:
@@ -70,14 +70,15 @@ This test case submits the form with only the mandatory fields (first name, last
    npx playwright test
    ```
 
-2. You can also run specific tests:
-   ```bash
-   npx playwright test --grep "Submit Form"
-   ```
-
-3. Run tests in headed mode (to visually observe the test):
+2. Run tests in headed mode (to visually observe the test):
    ```bash
    npx playwright test --headed
+   ```
+
+## Test Report
+1. To run the tests report, use the following command:
+   ```bash
+   npx playwright show-report
    ```
 
 ## Error Handling
