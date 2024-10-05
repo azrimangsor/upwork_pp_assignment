@@ -9,7 +9,6 @@ export class BasePage {
     }
 
     url = 'https://demoqa.com/automation-practice-form/';
-    //url = 'https://google.com'
 
     firstName = '#firstName';
     lastName = '#lastName';
@@ -31,6 +30,8 @@ export class BasePage {
     cityDropDown = '#city';
 
     buttonSubmit = '#submit';
+
+    summaryPage = '#example-modal-sizes-title-lg';
 
     async navigateToTestPage(): Promise<void> {
         try {
@@ -171,7 +172,6 @@ export class BasePage {
     }
 
     async selectDateOfBirth(dob: string): Promise<void> {
-        //await this.page.locator(this.dateOfBirth).fill(dob);
         this.verifyDateInput(dob);
 
         const [day, month, year] = dob.split(' ');
@@ -338,8 +338,6 @@ export class BasePage {
     }
 
     async clickSubject(subjectSearch: string): Promise<void> {
-        //this.page.locator('#react-select-2-option-0').click()
-
         try {
             // Check if the subject is available
             const subjectLocator = this.page.locator(`#react-select-2-option-0 >> text=${subjectSearch}`);
