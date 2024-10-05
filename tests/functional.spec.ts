@@ -31,7 +31,7 @@ test('Test Case 1 - Submit Form - All fields populated', async ({ page }, testIn
 
     await page.locator(base.buttonSubmit).click();
 
-    await page.locator('#example-modal-sizes-title-lg').isVisible();
+    await page.locator(base.summaryPage).isVisible();
 
     await base.verifyTableValue('Student Name', testData.firstName + ' ' + testData.lastName);
     await base.verifyTableValue('Student Email', testData.email);
@@ -58,7 +58,7 @@ test('Test Case 2 - Submit Form - Only mandatory populated', async ({ page }, te
 
     await page.locator(base.buttonSubmit).click();
 
-    await page.locator('#example-modal-sizes-title-lg').isVisible();
+    await page.locator(base.summaryPage).isVisible();
 
     await base.verifyTableValue('Student Name', testData2.firstName + ' ' + testData2.lastName);
     await base.verifyTableValue('Student Email', '');
