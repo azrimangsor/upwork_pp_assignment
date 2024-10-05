@@ -3,7 +3,7 @@ import { BasePage } from '../pages/basePage';
 import * as testData from "../data/testData_1.json";
 import * as testData2 from "../data/testData_2.json";
 
-test('Test Case 1 - Submit Form - All fields populated', { tag: '@e2e' }, async ({ page }, testInfo) => {
+test('Test Case 1 - Submit Form - All fields populated', async ({ page }, testInfo) => {
     const base = new BasePage(page);
 
     await base.navigateToTestPage();
@@ -44,7 +44,7 @@ test('Test Case 1 - Submit Form - All fields populated', { tag: '@e2e' }, async 
     await base.verifyTableValue('State and City', testData.state + ' ' + testData.city);
 })
 
-test('Test Case 2 - Submit Form - Only mandatory populated', { tag: '@e2e' }, async ({ page }, testInfo) => {
+test('Test Case 2 - Submit Form - Only mandatory populated', async ({ page }, testInfo) => {
     const base = new BasePage(page);
 
     await base.navigateToTestPage();
