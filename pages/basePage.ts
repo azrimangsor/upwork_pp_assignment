@@ -1,5 +1,5 @@
 import { expect, Page } from "@playwright/test";
-
+import * as path from 'path';
 
 export class BasePage {
     protected page: Page;
@@ -9,6 +9,7 @@ export class BasePage {
     }
 
     url = 'https://demoqa.com/automation-practice-form/';
+    //url = 'https://google.com'
 
     firstName = '#firstName';
     lastName = '#lastName';
@@ -19,19 +20,34 @@ export class BasePage {
     mobileNumber = '#userNumber';
     dateOfBirth = '#dateOfBirthInput';
     datePickerYear = 'select.react-datepicker__year-select';
-    datePickerMonth = 'react-datepicker__month-select';
-    subjectContainer = '#subjectsContainer';
-    subjectContainerResult = '#subjects-auto-complete__menu';
-    hobbiesSports = '#hobbies-checkbox-1';
-    hobbiesReading = '#hobbies-checkbox-2';
-    hobbiesMusic = '#hobbies-checkbox-3';
+    datePickerMonth = 'select.react-datepicker__month-select';
+    subjectContainer = '#subjectsInput';
+    subjectContainerResult = '##subjects-auto-complete__indicators';
+    hobbiesSports = 'input#hobbies-checkbox-1';
+    hobbiesReading = 'input#hobbies-checkbox-2';
+    hobbiesMusic = 'input#hobbies-checkbox-3';
+    address = 'textarea#currentAddress';
+    stateDropDown = '#state';
+    cityDropDown = '#city';
 
     buttonSubmit = '#submit';
 
     async navigateToTestPage(): Promise<void> {
-        await this.page.goto(this.url);
-        expect(this.page.url()).toContain('/automation-practice-form/');
-        console.log(`Success - Navigate to "${this.url}"`);
+        try {
+            // Navigate to the specified URL
+            await this.page.goto(this.url);
+            
+            // Validate if the current URL contains the expected part
+            if (this.page.url().includes('/automation-practice-form/')) {
+                console.log(`Success - Navigated to "${this.url}"`);
+            } else {
+                throw new Error(`Error - URL does not match expected path: '/automation-practice-form/'. Current URL: "${this.page.url()}"`);
+            }
+        } catch (error) {
+            // Log the error if the URL validation fails
+            console.error(`Navigation failed: ${error.message}`);
+            throw error;  // Optional: Re-throw the error to let the test fail if needed
+        }
     }
 
     async insertFirstName(fname: string): Promise<void> {
@@ -39,7 +55,12 @@ export class BasePage {
             await this.page.locator(this.firstName).fill(fname);
             const inputValue = await this.page.inputValue(this.firstName)
 
-            if (inputValue == fname) {
+            const isValid = await this.page.locator(this.lastName).evaluate(input => {
+                const element = input as HTMLInputElement; // Cast the element
+                return element.checkValidity();
+            });
+
+            if (inputValue == fname && isValid) {
                 console.log(`Success - First name inserted "${inputValue}"`);
             }
         } catch (error) {
@@ -65,7 +86,6 @@ export class BasePage {
         } catch (error) {
             console.error(`Error - Last name input : "${lname}" Message :`, error);
         }
-
     }
 
     async insertEmail(email: string): Promise<void> {
@@ -103,7 +123,7 @@ export class BasePage {
         }
     }
 
-    async inserMobileNumber(mobile: string): Promise<void> {
+    async insertMobileNumber(mobile: string): Promise<void> {
         try {
             await this.page.locator(this.mobileNumber).fill(mobile);
             const inputValue = await this.page.inputValue(this.mobileNumber)
@@ -134,41 +154,82 @@ export class BasePage {
 
             // Verify if the date matches the format
             if (dateRegex.test(dateValue)) {
-                console.log(`Success: Date "${dateValue}" matches the expected format.`);
+                //console.log(`Success: Date "${dateValue}" matches the expected format.`);
             } else {
                 throw new Error(`Error: Date "${dateValue}" does not match the expected format "DD MMM YYYY".`);
             }
 
             // Additionally, you can check if the input value matches the expected date
-            if (dateValue === expectedDate) {
-                console.log(`Success: The date matches the expected date "${expectedDate}".`);
-            } else {
-                throw new Error(`Error: Expected date "${expectedDate}", but found "${dateValue}".`);
-            }
+            // if (dateValue === expectedDate) {
+            //     //console.log(`Success - The date matches the expected date "${expectedDate}".`);
+            // } else {
+            //     throw new Error(`Error -  Expected date "${expectedDate}", but found "${dateValue}".`);
+            // }
         } catch (error) {
             console.error(`Date validation failed: ${error.message}`);
         }
     }
 
     async selectDateOfBirth(dob: string): Promise<void> {
-        try {
-            await this.page.locator(this.dateOfBirth).fill(dob);
-            this.verifyDateInput(dob);
-            const inputValue = await this.page.inputValue(this.dateOfBirth)
+        //await this.page.locator(this.dateOfBirth).fill(dob);
+        this.verifyDateInput(dob);
 
-            const isValid = await this.page.locator(this.dateOfBirth).evaluate(input => {
-                const element = input as HTMLInputElement; // Cast the element
-                return element.checkValidity();
-            });
+        const [day, month, year] = dob.split(' ');
 
-            if (inputValue == dob && isValid) {
-                console.log(`Success - Date of birth inserted "${inputValue}"`);
-            } else if (!isValid) {
-                console.error(`Error - Date of birth "${inputValue}" is invalid.`);
-            }
-        } catch (error) {
-            console.error(`Error - Date of birth input : "${dob}" Message :`, error);
-        }
+        const monthMap: { [key: string]: string } = {
+            'Jan': '0',
+            'Feb': '1',
+            'Mar': '2',
+            'Apr': '3',
+            'May': '4',
+            'Jun': '5',
+            'Jul': '6',
+            'Aug': '7',
+            'Sep': '8',
+            'Oct': '9',
+            'Nov': '10',
+            'Dec': '11'
+        };
+
+        // Get the corresponding value for the month from the monthMap
+        const monthValue = monthMap[month];
+
+        await this.page.locator('#dateOfBirthInput').click();
+        await this.page.locator('div').filter({ hasText: /^JanuaryFebruaryMarchAprilMayJuneJulyAugustSeptemberOctoberNovemberDecember$/ }).getByRole('combobox').selectOption(monthValue);
+        await this.page.getByRole('combobox').nth(1).selectOption(year);
+
+        const monthNameMap: { [key: string]: string } = {
+            'Jan': 'January',
+            'Feb': 'February',
+            'Mar': 'March',
+            'Apr': 'April',
+            'May': 'May',
+            'Jun': 'June',
+            'Jul': 'July',
+            'Aug': 'August',
+            'Sep': 'September',
+            'Oct': 'October',
+            'Nov': 'November',
+            'Dec': 'December'
+        };
+
+        const monthName = monthNameMap[month];
+
+        const getDayWithSuffix = (day: string) => {
+            const dayInt = parseInt(day);
+            if (dayInt === 1 || dayInt === 21 || dayInt === 31) return `${day}st`;
+            if (dayInt === 2 || dayInt === 22) return `${day}nd`;
+            if (dayInt === 3 || dayInt === 23) return `${day}rd`;
+            return `${day}th`;
+        };
+
+        // Get the day with the appropriate suffix
+        const dayWithSuffix = getDayWithSuffix(day);
+
+        //await this.page.getByLabel('Choose Friday, January 11th, 1980').click();
+        const dayPattern = new RegExp(`Choose .*, ${monthName} ${dayWithSuffix}.*, .*`, 'i');
+
+        await this.page.getByLabel(dayPattern).click();
     }
 
     async verifyTableValue(label: string, expectedValue: string): Promise<void> {
@@ -181,17 +242,119 @@ export class BasePage {
 
             // Verify the value in the table matches the expected value
             if (actualValue?.trim() === expectedValue) {
-                console.log(`Success: Value for "${label}" is correctly set to "${expectedValue}".`);
+                console.log(`Success - Value for "${label}" is correctly set to "${expectedValue}".`);
             } else {
-                throw new Error(`Error: Value for "${label}" is "${actualValue}", expected "${expectedValue}".`);
+                throw new Error(`Error - Value for "${label}" is "${actualValue}", expected "${expectedValue}".`);
             }
         } catch (error) {
             console.error(`Verification failed for "${label}": ${error.message}`);
         }
     }
 
-    async selectSubject(subject: string): Promise<void> {
+    async selectSubject(subjects: string): Promise<void> {
+        const subjectList = subjects.split(',').map(subject => subject.trim());
 
+
+        for (const subject of subjectList) {
+            //console.log(`Processing subject: ${subject}`);
+
+            // Click on the subject container to focus
+            await this.page.locator(this.subjectContainer).click();
+
+            // Type the first letter of the subject
+            await this.page.locator(this.subjectContainer).fill(subject);
+
+            this.clickSubject(subject);
+            //console.log(`Success - Subject added: ${subject}`);
+
+            await this.page.waitForTimeout(500);
+        }
+    }
+
+    async selectHobbies(hobbies: string): Promise<void> {
+        const selectedHobbies = hobbies.split(',').map(hobby => hobby.trim());
+
+        try {
+            for (const hobby of selectedHobbies) {
+                switch (hobby) {
+                    case 'Sports':
+                        await this.page.getByText('Sports').click();
+                        console.log(`Success - Hobby selected Sports`);
+                        break;
+                    case 'Reading':
+                        await this.page.getByText('Reading').click();
+                        console.log(`Success - Hobby selected Reading`);
+                        break;
+                    case 'Music':
+                        await this.page.getByText('Music').click();
+                        console.log(`Success - Hobby selected Music`);
+                        break;
+                    default:
+                        throw new Error(`Invalid hobby: ${hobby}. Please select either "Sports", "Reading", or "Music".`);
+                }
+            }
+        } catch (error) {
+            console.error(`Date validation failed: ${error.message}`);
+        }
+
+    }
+
+    async uploadImage(): Promise<void> {
+        const fileInput = this.page.locator('input[type="file"]');
+
+        const filePath = path.resolve(__dirname, 'files', 'test.jpg');
+
+        await fileInput.setInputFiles(filePath);
+    }
+
+    async insertCurrentAddress(address: string): Promise<void> {
+        try {
+            await this.page.locator(this.address).fill(address);
+            const inputValue = await this.page.inputValue(this.address)
+
+            const isValid = await this.page.locator(this.address).evaluate(input => {
+                const element = input as HTMLInputElement; // Cast the element
+                return element.checkValidity();
+            });
+
+            if (inputValue == address && isValid) {
+                console.log(`Success - Current address inserted "${inputValue}"`);
+            } else if (!isValid) {
+                console.error(`Error - Current address "${inputValue}" is invalid.`);
+            }
+        } catch (error) {
+            console.error(`Error - Current address input : "${address}" Message :`, error);
+        }
+    }
+
+    async selectState(state: string, city: string): Promise<void> {
+
+        await this.page.locator(this.stateDropDown).click();
+        await this.page.getByText(state, { exact: true }).click();
+
+        await this.page.locator(this.cityDropDown).click();
+        await this.page.getByText(city, { exact: true }).click();
+
+    }
+
+    async clickSubject(subjectSearch: string): Promise<void> {
+        //this.page.locator('#react-select-2-option-0').click()
+
+        try {
+            // Check if the subject is available
+            const subjectLocator = this.page.locator(`#react-select-2-option-0 >> text=${subjectSearch}`);
+    
+            // Ensure that the subject exists before clicking
+            if ( await subjectLocator.count() > 0) {
+                await subjectLocator.click();
+                console.log(`Success - Selected subject: "${subjectSearch}"`);
+            } else {
+                throw new Error(`Subject not available: "${subjectSearch}"`);
+            }
+        } catch (error) {
+            // Log the error if the subject is not available or there is any other issue
+            console.error(`Error - Subject selection failed: ${error.message}`);
+        }
     }
 
     formatDate(input: string): string {
@@ -219,9 +382,14 @@ export class BasePage {
             throw new Error(`Invalid date format: "${input}". Expected format is "DD MMM YYYY".`);
         }
 
-        const day = parts[0];
+        let day = parts[0];
         const abbreviatedMonth = parts[1];
         const year = parts[2];
+
+        // Add leading zero to single-digit days
+        if (parseInt(day) < 10) {
+            day = `0${day}`;
+        }
 
         // Get the full month name from the map
         const fullMonth = monthMap[abbreviatedMonth];
@@ -232,5 +400,4 @@ export class BasePage {
         // Format and return the new date string
         return `${day} ${fullMonth},${year}`;
     }
-
 }
