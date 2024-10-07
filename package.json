@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "description": "A mini task for QA Engineer as part of the recruitment process",
   "main": "index.js",
-  "scripts": {},
+  "scripts": {
+    "pwtests": "npx playwright test --headed"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
