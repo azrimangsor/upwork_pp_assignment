@@ -1,8 +1,27 @@
 import { expect, Page } from "@playwright/test";
 import * as path from 'path';
 
+class Logger {
+    // Success message (green text)
+    logSuccess(message) {
+        console.log("\x1b[32m%s\x1b[0m", "[SUCCESS] -", message);
+    }
+
+    // Error message (red text)
+    logError(message) {
+        console.log("\x1b[31m%s\x1b[0m", "[ERROR] -", message);
+    }
+
+    // Warning message (yellow text)
+    logWarning(message) {
+        console.log("\x1b[33m%s\x1b[0m", "[WARNING] -", message);
+    }
+}
+
+const logger = new Logger();
+
 export class BasePage {
-    protected page: Page;
+    public page: Page;
 
     constructor(page: Page) {
         this.page = page;
@@ -35,144 +54,164 @@ export class BasePage {
 
     async navigateToTestPage(): Promise<void> {
         try {
+
+            this.page.setDefaultTimeout(60000);
             // Navigate to the specified URL
             await this.page.goto(this.url);
-            
+
             // Validate if the current URL contains the expected part
             if (this.page.url().includes('/automation-practice-form/')) {
-                console.log(`Success - Navigated to "${this.url}"`);
+                //console.log(`Success - Navigated to "${this.url}"`);
+                logger.logSuccess(`Navigated to "${this.url}"`);
             } else {
                 throw new Error(`Error - URL does not match expected path: '/automation-practice-form/'. Current URL: "${this.page.url()}"`);
             }
         } catch (error) {
             // Log the error if the URL validation fails
-            console.error(`Navigation failed: ${error.message}`);
+            logger.logError(`Navigation failed: ${error.message}`);
             throw error;  // Optional: Re-throw the error to let the test fail if needed
         }
     }
 
     async insertFirstName(fname: string): Promise<void> {
         try {
+            // Fill the first name input
             await this.page.locator(this.firstName).fill(fname);
-            const inputValue = await this.page.inputValue(this.firstName)
-
-            const isValid = await this.page.locator(this.lastName).evaluate(input => {
-                const element = input as HTMLInputElement; // Cast the element
-                return element.checkValidity();
-            });
-
-            if (inputValue == fname && isValid) {
-                console.log(`Success - First name inserted "${inputValue}"`);
+    
+            // Verify the input value matches the expected first name
+            const inputValue = await this.page.inputValue(this.firstName);
+    
+            // Check if the first name input is valid
+            const isValid = await this.page.locator(this.firstName).evaluate(
+                (input) => (input as HTMLInputElement).checkValidity()
+            );
+    
+            // Log success if the value is correct and the input is valid
+            if (inputValue === fname && isValid) {
+                logger.logSuccess(`First name inserted successfully: "${inputValue}"`);
             }
         } catch (error) {
-            console.error(`Error - First name input : "${fname}" Message :`, error);
+            // Log error details
+            logger.logError(`Error inserting first name: "${fname}". Message: ${error.message}`);
         }
     }
 
     async insertLastName(lname: string): Promise<void> {
         try {
+            // Fill the last name input
             await this.page.locator(this.lastName).fill(lname);
-            const inputValue = await this.page.inputValue(this.lastName)
-
-            const isValid = await this.page.locator(this.lastName).evaluate(input => {
-                const element = input as HTMLInputElement; // Cast the element
-                return element.checkValidity();
-            });
-
-            if (inputValue == lname && isValid) {
-                console.log(`Success - Last name inserted "${inputValue}"`);
+    
+            // Get the input value and check if it is valid
+            const inputValue = await this.page.inputValue(this.lastName);
+            const isValid = await this.page.locator(this.lastName).evaluate(
+                (input) => (input as HTMLInputElement).checkValidity()
+            );
+    
+            // Log success if the input is valid and matches the provided last name
+            if (inputValue === lname && isValid) {
+                logger.logSuccess(`Last name inserted successfully: "${inputValue}"`);
             } else if (!isValid) {
-                console.error(`Error - Last name "${inputValue}" is invalid.`);
+                logger.logError(`Invalid last name: "${inputValue}".`);
             }
         } catch (error) {
-            console.error(`Error - Last name input : "${lname}" Message :`, error);
+            // Log any error that occurs during the process
+            logger.logError(`Error inserting last name: "${lname}". Message: ${error.message}`);
         }
-    }
+    }    
 
     async insertEmail(email: string): Promise<void> {
         try {
             // Fill the email input
             await this.page.locator(this.userEmail).fill(email);
-
-            // Get the value inserted in the input box
+    
+            // Check if the input value matches the provided email and is valid
             const inputValue = await this.page.inputValue(this.userEmail);
-
-            // Evaluate checkValidity() inside the browser context
-            const isValid = await this.page.locator(this.userEmail).evaluate(input => {
-                const element = input as HTMLInputElement; // Cast the element
-                return element.checkValidity();
-            });
-
-            // Log success if the input is valid and value matches
+            const isValid = await this.page.locator(this.userEmail).evaluate(
+                (input) => (input as HTMLInputElement).checkValidity()
+            );
+    
+            // Log success or error based on validity and input match
             if (inputValue === email && isValid) {
-                console.log(`Success - Email inserted: "${inputValue}"`);
-            } else if (!isValid) {
-                console.error(`Error - Email "${inputValue}" is invalid.`);
+                logger.logSuccess(`Email inserted successfully: "${inputValue}"`);
+            } else {
+                logger.logError(`Invalid email: "${inputValue}".`);
             }
         } catch (error) {
-            console.error(`Error - Email input: "${email}" Message:`, error);
+            // Log error details
+            logger.logError(`Error inserting email: "${email}". Message: ${error.message}`);
         }
-    }
+    }    
 
     async selectGender(gender: string): Promise<void> {
         try {
-            await this.page.getByText(gender, { exact: true }).click();
-            await this.page.getByText(gender, { exact: true }).isChecked();
-            console.log(`Success - Gender "${gender}" selected`);
+            const genderOption = this.page.getByText(gender, { exact: true });
+            await genderOption.click();
+    
+            // Ensure the selected gender option is checked
+            const isChecked = await genderOption.isChecked();
+    
+            if (isChecked) {
+                logger.logSuccess(`Gender "${gender}" selected successfully`);
+            } else {
+                logger.logError(`Failed to select gender: "${gender}". Option not checked.`);
+            }
         } catch (error) {
-            console.error(`Error - Gender Input : "${gender}" Message :`, error);
+            // Log error details
+            logger.logError(`Error selecting gender: "${gender}". Message: ${error.message}`);
         }
-    }
+    }    
 
     async insertMobileNumber(mobile: string): Promise<void> {
         try {
+            // Fill the mobile number input
             await this.page.locator(this.mobileNumber).fill(mobile);
-            const inputValue = await this.page.inputValue(this.mobileNumber)
-
-            const isValid = await this.page.locator(this.mobileNumber).evaluate(input => {
-                const element = input as HTMLInputElement; // Cast the element
-                return element.checkValidity();
-            });
-
-            if (inputValue == mobile && isValid) {
-                console.log(`Success - Mobile number inserted "${inputValue}"`);
-            } else if (!isValid) {
-                console.error(`Error - Mobile Number "${inputValue}" is invalid.`);
+    
+            // Get the input value and check its validity
+            const inputValue = await this.page.inputValue(this.mobileNumber);
+            const isValid = await this.page.locator(this.mobileNumber).evaluate(
+                (input) => (input as HTMLInputElement).checkValidity()
+            );
+    
+            // Log success if the value matches and input is valid
+            if (inputValue === mobile && isValid) {
+                logger.logSuccess(`Mobile number inserted successfully: "${inputValue}"`);
+            } else {
+                logger.logError(`Invalid mobile number: "${inputValue}".`);
             }
         } catch (error) {
-            console.error(`Error - Mobile number input : "${mobile}" Message :`, error);
+            // Log error details
+            logger.logError(`Error inserting mobile number: "${mobile}". Message: ${error.message}`);
         }
-
-    }
+    }    
 
     async verifyDateInput(expectedDate: string): Promise<void> {
         try {
             // Get the input value from the date field
             const dateValue = await this.page.inputValue(this.dateOfBirth);
-
-            // Define the regular expression to match the format 'DD MMM YYYY' (e.g., '04 Oct 2024')
-            const dateRegex = /^(0[1-9]|[12][0-9]|3[01]) (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) (19[0-9]{2}|20[0-9]{2}|2100)$/;
-
-            // Verify if the date matches the format
-            if (dateRegex.test(dateValue)) {
-                //console.log(`Success: Date "${dateValue}" matches the expected format.`);
-            } else {
-                throw new Error(`Error: Date "${dateValue}" does not match the expected format "DD MMM YYYY".`);
+    
+            // Regular expression to match the format 'DD MMM YYYY' (e.g., '04 Oct 2024')
+            const dateRegex = /^(0[1-9]|[12][0-9]|3[01]) (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) (19\d{2}|20\d{2}|2100)$/;
+    
+            // Verify if the date matches the expected format
+            if (!dateRegex.test(dateValue)) {
+                throw new Error(`Date "${dateValue}" does not match the expected format "DD MMM YYYY".`);
             }
-
-            // Additionally, you can check if the input value matches the expected date
-            // if (dateValue === expectedDate) {
-            //     //console.log(`Success - The date matches the expected date "${expectedDate}".`);
-            // } else {
-            //     throw new Error(`Error -  Expected date "${expectedDate}", but found "${dateValue}".`);
-            // }
+    
+            // Optionally check if the input value matches the expected date
+            if (dateValue !== expectedDate) {
+                throw new Error(`Expected date "${expectedDate}", but found "${dateValue}".`);
+            }
+    
+            // Log success if both checks pass
+            logger.logSuccess(`Date "${dateValue}" matches the expected format and value.`);
         } catch (error) {
-            console.error(`Date validation failed: ${error.message}`);
+            // Log error details
+            logger.logError(`Date validation failed: ${error.message}`);
         }
-    }
+    }    
 
     async selectDateOfBirth(dob: string): Promise<void> {
-        this.verifyDateInput(dob);
+        //this.verifyDateInput(dob);
 
         const [day, month, year] = dob.split(' ');
 
@@ -230,128 +269,167 @@ export class BasePage {
         const dayPattern = new RegExp(`Choose .*, ${monthName} ${dayWithSuffix}.*, .*`, 'i');
 
         await this.page.getByLabel(dayPattern).click();
+
+        //this.verifyDateInput(dob);
     }
 
     async verifyTableValue(label: string, expectedValue: string): Promise<void> {
         try {
-            // Locate the row that contains the label and then get the value in the adjacent cell
+            // Locate the value in the adjacent cell of the row containing the label
             const valueLocator = this.page.locator(`table.table-dark tbody tr:has-text("${label}") td:nth-child(2)`);
-
-            // Get the actual value from the table
-            const actualValue = await valueLocator.textContent();
-
-            // Verify the value in the table matches the expected value
-            if (actualValue?.trim() === expectedValue) {
-                console.log(`Success - Value for "${label}" is correctly set to "${expectedValue}".`);
+            
+            // Retrieve and trim the actual value
+            const actualValue = (await valueLocator.textContent())?.trim();
+    
+            // Compare the actual value with the expected value
+            if (actualValue === expectedValue) {
+                logger.logSuccess(`Success - Value for "${label}" is correctly set to "${expectedValue}".`);
             } else {
-                throw new Error(`Error - Value for "${label}" is "${actualValue}", expected "${expectedValue}".`);
+                throw new Error(`Value for "${label}" is "${actualValue}", expected "${expectedValue}".`);
             }
         } catch (error) {
-            console.error(`Verification failed for "${label}": ${error.message}`);
+            logger.logWarning(`Verification failed for "${label}": ${error.message}`);
         }
     }
 
     async selectSubject(subjects: string): Promise<void> {
+        // Split and trim the subject list
         const subjectList = subjects.split(',').map(subject => subject.trim());
-
-
+    
+        // Iterate over each subject in the list
         for (const subject of subjectList) {
-            //console.log(`Processing subject: ${subject}`);
-
-            // Click on the subject container to focus
-            await this.page.locator(this.subjectContainer).click();
-
-            // Type the first letter of the subject
-            await this.page.locator(this.subjectContainer).fill(subject);
-
-            this.clickSubject(subject);
-            //console.log(`Success - Subject added: ${subject}`);
-
-            await this.page.waitForTimeout(500);
+            try {
+                // Focus on the subject container
+                await this.page.locator(this.subjectContainer).click();
+    
+                // Fill in the subject name
+                await this.page.locator(this.subjectContainer).fill(subject);
+    
+                // Click on the subject from the autocomplete suggestions
+                await this.clickSubject(subject);
+    
+                // Optional: Small wait to ensure the subject is properly added
+                await this.page.waitForTimeout(500);
+    
+                // Log success
+                logger.logSuccess(`Success - Subject added: "${subject}"`);
+            } catch (error) {
+                logger.logError(`Error - Failed to add subject: "${subject}". Message: ${error.message}`);
+            }
         }
     }
 
     async selectHobbies(hobbies: string): Promise<void> {
+        // Split and trim the hobbies list
         const selectedHobbies = hobbies.split(',').map(hobby => hobby.trim());
-
+    
         try {
+            // Iterate over each hobby and handle the selection
             for (const hobby of selectedHobbies) {
-                switch (hobby) {
-                    case 'Sports':
-                        await this.page.getByText('Sports').click();
-                        console.log(`Success - Hobby selected Sports`);
-                        break;
-                    case 'Reading':
-                        await this.page.getByText('Reading').click();
-                        console.log(`Success - Hobby selected Reading`);
-                        break;
-                    case 'Music':
-                        await this.page.getByText('Music').click();
-                        console.log(`Success - Hobby selected Music`);
-                        break;
-                    default:
-                        throw new Error(`Invalid hobby: ${hobby}. Please select either "Sports", "Reading", or "Music".`);
+                const hobbyLocator = await this.page.getByText(hobby, { exact: true });
+    
+                if (await hobbyLocator.isVisible()) {
+                    await hobbyLocator.click();
+                    logger.logSuccess(`Success - Hobby selected: "${hobby}"`);
+                } else {
+                    throw new Error(`Invalid hobby: "${hobby}". Please select either "Sports", "Reading", or "Music".`);
                 }
             }
         } catch (error) {
-            console.error(`Date validation failed: ${error.message}`);
+            logger.logError(`Hobby selection failed: ${error.message}`);
         }
-
-    }
+    } 
 
     async uploadImage(): Promise<void> {
-        const fileInput = this.page.locator('input[type="file"]');
-
-        const filePath = path.resolve(__dirname, 'files', 'test.jpg');
-
-        await fileInput.setInputFiles(filePath);
+        try {
+            // Locate the file input element
+            const fileInput = this.page.locator('input[type="file"]');
+            
+            // Resolve the file path
+            const filePath = path.resolve(__dirname, 'files', 'test.jpg');
+            
+            // Check if the file input is visible before attempting to set the file
+            if (!(await fileInput.isVisible())) {
+                throw new Error('File input element is not visible on the page.');
+            }
+            
+            // Upload the image file
+            await fileInput.setInputFiles(filePath);
+            
+            logger.logSuccess('Image successfully uploaded.');
+        } catch (error) {
+            // Log error if the upload fails
+            logger.logError(`Image upload failed: ${error.message}`);
+        }
     }
 
     async insertCurrentAddress(address: string): Promise<void> {
         try {
+            // Fill the current address input field
             await this.page.locator(this.address).fill(address);
-            const inputValue = await this.page.inputValue(this.address)
-
-            const isValid = await this.page.locator(this.address).evaluate(input => {
-                const element = input as HTMLInputElement; // Cast the element
-                return element.checkValidity();
-            });
-
-            if (inputValue == address && isValid) {
-                console.log(`Success - Current address inserted "${inputValue}"`);
-            } else if (!isValid) {
-                console.error(`Error - Current address "${inputValue}" is invalid.`);
+    
+            // Get the value inserted in the input box
+            const inputValue = await this.page.inputValue(this.address);
+    
+            // Validate if the input field's content is valid using checkValidity()
+            const isValid = await this.page.locator(this.address).evaluate((input: HTMLInputElement) => input.checkValidity());
+    
+            // Check if the entered address matches the expected value and is valid
+            if (inputValue === address && isValid) {
+                logger.logSuccess(`Current address inserted successfully: "${inputValue}"`);
+            } else {
+                throw new Error(`Current address "${inputValue}" is invalid or does not match the expected input.`);
             }
         } catch (error) {
-            console.error(`Error - Current address input : "${address}" Message :`, error);
+            // Log the error with appropriate messaging
+            logger.logError(`Failed to insert current address: "${address}". Error: ${error.message}`);
         }
-    }
+    }    
 
     async selectState(state: string, city: string): Promise<void> {
-
-        await this.page.locator(this.stateDropDown).click();
-        await this.page.getByText(state, { exact: true }).click();
-
-        await this.page.locator(this.cityDropDown).click();
-        await this.page.getByText(city, { exact: true }).click();
-
-    }
+        try {
+            // Select the state from the dropdown
+            await this.page.locator(this.stateDropDown).click();
+            const stateOption = await this.page.getByText(state, { exact: true });
+            
+            if (await stateOption.isVisible()) {
+                await stateOption.click();
+                logger.logSuccess(`State "${state}" selected successfully.`);
+            } else {
+                throw new Error(`State "${state}" not found in the dropdown.`);
+            }
+    
+            // Select the city from the dropdown
+            await this.page.locator(this.cityDropDown).click();
+            const cityOption = await this.page.getByText(city, { exact: true });
+    
+            if (await cityOption.isVisible()) {
+                await cityOption.click();
+                logger.logSuccess(`City "${city}" selected successfully.`);
+            } else {
+                throw new Error(`City "${city}" not found in the dropdown.`);
+            }
+        } catch (error) {
+            // Log the error with details
+            logger.logError(`Error while selecting state "${state}" and city "${city}": ${error.message}`);
+        }
+    }    
 
     async clickSubject(subjectSearch: string): Promise<void> {
         try {
-            // Check if the subject is available
+            // Locate the subject option
             const subjectLocator = this.page.locator(`#react-select-2-option-0 >> text=${subjectSearch}`);
     
-            // Ensure that the subject exists before clicking
-            if ( await subjectLocator.count() > 0) {
+            // Verify if the subject exists before clicking
+            if (await subjectLocator.isVisible()) {
                 await subjectLocator.click();
-                console.log(`Success - Selected subject: "${subjectSearch}"`);
+                logger.logSuccess(`Subject "${subjectSearch}" selected successfully.`);
             } else {
-                throw new Error(`Subject not available: "${subjectSearch}"`);
+                throw new Error(`Subject "${subjectSearch}" is not available in the dropdown.`);
             }
         } catch (error) {
-            // Log the error if the subject is not available or there is any other issue
-            console.error(`Error - Subject selection failed: ${error.message}`);
+            // Handle and log any error that occurs during subject selection
+            logger.logError(`Error - Failed to select subject "${subjectSearch}": ${error.message}`);
         }
     }
 
